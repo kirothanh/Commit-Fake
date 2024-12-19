@@ -1,0 +1,46 @@
+name: Auto Commit Daily
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Chạy mỗi ngày lúc 00:00 UTC
+  workflow_dispatch: # Cho phép chạy thủ công nếu cần
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    - name: Install dependencies
+      run: |
+        npm install moment jsonfile simple-git
+
+    - name: Auto Commit
+      run: |
+        node <<EOF
+        const fs = require("fs");
+        const jsonfile = require("jsonfile");
+        const moment = require("moment");
+        const simpleGit = require("simple-git");
+
+        const path = "./data.json";
+        const date = moment().format("YYYY-MM-DD");
+
+        const data = { date };
+        jsonfile.writeFileSync(path, data);
+
+        const git = simpleGit();
+        git.add(path)
+          .commit(`Auto commit for ${date}`, { "--date": new Date().toISOString() })
+          .push();
+        EOF
+
+    - name: Push changes
+      run: git push
